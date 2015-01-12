@@ -20,13 +20,15 @@
     
     UITextView *textView = (UITextView *)self.view;
     textView.text = self.note.note;
+    
+    [textView becomeFirstResponder];
 }
 
 - (void)viewDidDisappear:(BOOL)animated
 {
     UITextView *textView = (UITextView *)self.view;
     NSString *newNote = textView.text;
-    if ([newNote isEqualToString:@""]) return;
+    if ([newNote isEqualToString:self.note.note]) return;
     
     NSManagedObjectContext *context = [self managedObjectContext];
     
