@@ -14,4 +14,9 @@
 @dynamic note;
 @dynamic date;
 
++ (NSString *)entityName
+{
+    return NSStringFromClass(self);
+}
+
 @end

@@ -8,8 +8,9 @@
 
 #import "PATableViewController.h"
 
-@class Note;
-
+static NSString *kNewNoteSegueIdentifier = @"NewNoteSeque";
+static NSString *kUpdateNoteSegueIdentifier = @"UpdateNoteSegue";
+static NSString *kNoteCellIdentifier = @"NoteCell";
 
 @implementation PATableViewController
 
@@ -35,7 +36,7 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Fart"];
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kNoteCellIdentifier];
     Note *note = [self.fetchedResultsController objectAtIndexPath:indexPath];
     cell.textLabel.text = note.note;
     return cell;
@@ -109,13 +110,13 @@
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
-    if ( [[segue identifier] isEqualToString:@"NewNoteSeque"] ){
+    if ( [[segue identifier] isEqualToString:kNewNoteSegueIdentifier] ){
         PATextViewController *textViewController = (PATextViewController *)[segue destinationViewController];
         
         NSManagedObjectContext *context = [self managedObjectContext];
         
         // Create a new managed object
-        Note *note = [NSEntityDescription insertNewObjectForEntityForName:@"Note" inManagedObjectContext:context];
+        Note *note = [NSEntityDescription insertNewObjectForEntityForName:[Note entityName] inManagedObjectContext:context];
         [note setValue:@"" forKey:@"note"];
         [note setValue:[NSDate date] forKey:@"date"];
         
@@ -126,7 +127,7 @@
         }
         
         textViewController.note = note;
-    } else if ([[segue identifier] isEqualToString:@"UpdateNoteSegue"]) {
+    } else if ([[segue identifier] isEqualToString:kUpdateNoteSegueIdentifier]) {
         NSIndexPath *indexPath = [[self tableView] indexPathForSelectedRow];
         PATextViewController *textViewController = (PATextViewController *)[segue destinationViewController];
         textViewController.note = [self.fetchedResultsController objectAtIndexPath:indexPath];
@@ -141,7 +142,7 @@
     
     NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
     NSEntityDescription *entity = [NSEntityDescription
-                                   entityForName:@"Note" inManagedObjectContext:[self managedObjectContext]];
+                                   entityForName:[Note entityName] inManagedObjectContext:[self managedObjectContext]];
     [fetchRequest setEntity:entity];
     
     NSSortDescriptor *sort = [[NSSortDescriptor alloc]
