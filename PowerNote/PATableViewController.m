@@ -71,8 +71,20 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
     [self.tableView endUpdates];
 }
 
+- (NSData*)encodeDictionary:(NSDictionary*)dictionary {
+    NSMutableArray *parts = [[NSMutableArray alloc] init];
+    for (NSString *key in dictionary) {
+        NSString *encodedValue = [[dictionary objectForKey:key] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+        NSString *encodedKey = [key stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+        NSString *part = [NSString stringWithFormat: @"%@=%@", encodedKey, encodedValue];
+        [parts addObject:part];
+    }
+    NSString *encodedDictionary = [parts componentsJoinedByString:@"&"];
+    return [encodedDictionary dataUsingEncoding:NSUTF8StringEncoding];
+}
+
 - (void)controller:(NSFetchedResultsController *)controller
-  didChangeObject:(id)anObject
+  didChangeObject:(Note *)anObject
       atIndexPath:(NSIndexPath *)indexPath
     forChangeType:(NSFetchedResultsChangeType)type
      newIndexPath:(NSIndexPath *)newIndexPath
@@ -99,12 +111,134 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             [tableView insertRowsAtIndexPaths:[NSArray arrayWithObject:newIndexPath] withRowAnimation:UITableViewRowAnimationFade];
             break;
     }
+    
+    if (!anObject.objectID.isTemporaryID) {
+        [self updatedObjectOnWeb:anObject];
+    }
 }
 
 - (void)configureCell:(UITableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath
 {
     Note *note = (Note *)[self.fetchedResultsController objectAtIndexPath:indexPath];
     cell.textLabel.text = note.note;
+}
+
+- (void)updatedObjectOnWeb:(Note*)note
+{
+    NSURL *url = [NSURL URLWithString:@"http://localhost:8093/n/"];
+    NSDictionary *postDict = [NSDictionary dictionaryWithObjectsAndKeys:note.note, @"note_text", note.uuid, @"note_id", nil];
+    NSData *postData = [self encodeDictionary:postDict];
+    
+    // Create the request
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request setHTTPMethod:@"POST"];
+    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)postData.length] forHTTPHeaderField:@"Content-Length"];
+    [request setValue:@"application/x-www-form-urlencoded charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+    [request setHTTPBody:postData];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Peform the request
+        NSURLResponse *response;
+        NSError *error = nil;
+        NSData *receivedData = [NSURLConnection sendSynchronousRequest:request
+                                                     returningResponse:&response
+                                                                 error:&error];
+        if (error) {
+            // Deal with your error
+            if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
+                NSLog(@"HTTP Error: %ld %@", (long)httpResponse.statusCode, error);
+                return;
+            }
+            NSLog(@"Error %@", error);
+            return;
+        }
+        
+        NSString *responeString = [[NSString alloc] initWithData:receivedData
+                                                        encoding:NSUTF8StringEncoding];
+        // Assume lowercase
+        if ([responeString isEqualToString:@"true"]) {
+            // Deal with true
+            return;
+        }
+        // Deal with an error
+        
+        // When dealing with UI updates, they must be run on the main queue, ie:
+        //      dispatch_async(dispatch_get_main_queue(), ^(void){
+        //
+        //      });
+    });
+}
+
+- (IBAction)reloadNotes:(id)sender {
+    NSURL *url = [NSURL URLWithString:@"http://localhost:8093/notes/changes"];
+    NSDictionary *postDict = [NSDictionary dictionaryWithObjectsAndKeys:@"1", @"get_updates", nil];
+    NSData *postData = [self encodeDictionary:postDict];
+    
+    // Create the request
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request setHTTPMethod:@"POST"];
+    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)postData.length] forHTTPHeaderField:@"Content-Length"];
+    [request setValue:@"application/x-www-form-urlencoded charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+    [request setHTTPBody:postData];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Peform the request
+        NSURLResponse *response;
+        NSError *error = nil;
+        NSData *receivedData = [NSURLConnection sendSynchronousRequest:request
+                                                     returningResponse:&response
+                                                                 error:&error];
+        
+        NSArray *jsonArray = [NSJSONSerialization JSONObjectWithData:receivedData options:kNilOptions error:&error];
+        
+        if (error) {
+            // Deal with your error
+            if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
+                NSLog(@"HTTP Error: %ld %@", (long)httpResponse.statusCode, error);
+                return;
+            }
+            NSLog(@"Error %@", error);
+            return;
+        }
+        
+        if ([jsonArray count] == 0) {
+            NSLog(@"no changes");
+            return;
+        }
+        
+        NSMutableArray *noteUUIDs = nil;
+        for (NSArray *change in jsonArray) {
+            [noteUUIDs addObject:[change objectAtIndex:0]];
+        }
+
+        NSFetchRequest *request = [[NSFetchRequest alloc] init];
+        NSEntityDescription *entity =
+        [NSEntityDescription entityForName:[Note entityName]
+                    inManagedObjectContext:[self managedObjectContext]];
+        [request setEntity:entity];
+        
+        NSPredicate *predicate = [NSPredicate predicateWithFormat:@"uuid in %@", noteUUIDs];
+        [request setPredicate:predicate];
+        
+        NSArray *array = [[self managedObjectContext] executeFetchRequest:request error:&error];
+        if (array != nil) {
+//            NSUInteger count = [array count]; // May be 0 if the object has been deleted.
+//            //
+        }
+        else {
+            // Deal with error.
+        }
+        
+        // Deal with an error
+        
+        // When dealing with UI updates, they must be run on the main queue, ie:
+        //      dispatch_async(dispatch_get_main_queue(), ^(void){
+        //
+        //      });
+    });
+
 }
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
@@ -114,10 +248,14 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
         
         NSManagedObjectContext *context = [self managedObjectContext];
         
+        NSString *uuid = [[NSUUID UUID] UUIDString];
         // Create a new managed object
         Note *note = [NSEntityDescription insertNewObjectForEntityForName:[Note entityName] inManagedObjectContext:context];
         [note setValue:@"" forKey:@"note"];
         [note setValue:[NSDate date] forKey:@"date"];
+        [note setValue:uuid forKey:@"uuid"];
+        
+        NSLog(@"%@", uuid);
         
         NSError *error = nil;
         // Save the object to persistent store

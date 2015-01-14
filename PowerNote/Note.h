@@ -14,6 +14,7 @@
 
 @property (nonatomic, retain) NSString * note;
 @property (nonatomic, retain) NSDate * date;
+@property (nonatomic, retain) NSString * uuid;
 
 + (NSString *)entityName;
 

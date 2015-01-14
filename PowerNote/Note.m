@@ -13,6 +13,7 @@
 
 @dynamic note;
 @dynamic date;
+@dynamic uuid;
 
 + (NSString *)entityName
 {
