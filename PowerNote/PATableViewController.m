@@ -208,7 +208,7 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             return;
         }
         
-        NSMutableArray *noteUUIDs = nil;
+        NSMutableArray *noteUUIDs = [NSMutableArray new];
         for (NSArray *change in jsonArray) {
             [noteUUIDs addObject:[change objectAtIndex:0]];
         }
@@ -222,21 +222,34 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
         NSPredicate *predicate = [NSPredicate predicateWithFormat:@"uuid in %@", noteUUIDs];
         [request setPredicate:predicate];
         
-        NSArray *array = [[self managedObjectContext] executeFetchRequest:request error:&error];
-        if (array != nil) {
+        NSManagedObjectContext *context = [self managedObjectContext];
+        NSArray *results = [context executeFetchRequest:request error:&error];
+        if (results != nil) {
 //            NSUInteger count = [array count]; // May be 0 if the object has been deleted.
 //            //
+            for(Note *note in results){
+                [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+                    NSString *currentNote = [obj objectAtIndex:0];
+                    if ([note.uuid isEqualToString:currentNote]) {
+                        note.note = [obj objectAtIndex:1];
+                    }
+                }];
+            }
+            
+            NSError *error = nil;
+            // Save the object to persistent store
+            if (![context save:&error]) {
+                NSLog(@"Can't Save! %@ %@", error, [error localizedDescription]);
+            }
+            
+            jsonArray = nil;
+            results  = nil;
+            request = nil;
+            noteUUIDs = nil;
         }
         else {
             // Deal with error.
         }
-        
-        // Deal with an error
-        
-        // When dealing with UI updates, they must be run on the main queue, ie:
-        //      dispatch_async(dispatch_get_main_queue(), ^(void){
-        //
-        //      });
     });
 
 }
