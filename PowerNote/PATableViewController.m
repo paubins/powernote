@@ -125,7 +125,9 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 
 - (void)updatedObjectOnWeb:(Note*)note
 {
-    NSURL *url = [NSURL URLWithString:@"http://localhost:8093/n/"];
+    NSString *urlString = [NSString stringWithFormat:@"%@/n/", [self mainURL]];
+    NSURL *url = [NSURL URLWithString:urlString];
+
     NSDictionary *postDict = [NSDictionary dictionaryWithObjectsAndKeys:note.note, @"note_text", note.uuid, @"note_id", nil];
     NSData *postData = [self encodeDictionary:postDict];
     
@@ -171,7 +173,10 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 }
 
 - (IBAction)reloadNotes:(id)sender {
-    NSURL *url = [NSURL URLWithString:@"http://localhost:8093/notes/changes"];
+    
+    NSString *urlString = [NSString stringWithFormat:@"%@/notes/changes", [self mainURL]];
+    NSURL *url = [NSURL URLWithString:urlString];
+    
     NSDictionary *postDict = [NSDictionary dictionaryWithObjectsAndKeys:@"1", @"get_updates", nil];
     NSData *postData = [self encodeDictionary:postDict];
     
@@ -225,8 +230,6 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
         NSManagedObjectContext *context = [self managedObjectContext];
         NSArray *results = [context executeFetchRequest:request error:&error];
         if (results != nil) {
-//            NSUInteger count = [array count]; // May be 0 if the object has been deleted.
-//            //
             for(Note *note in results){
                 [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
                     NSString *currentNote = [obj objectAtIndex:0];
@@ -319,6 +322,15 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
         context = [delegate managedObjectContext];
     }
     return context;
+}
+
+
+- (NSString *)mainURL
+{
+#if DEBUG
+    return @"http://localhost:8093";
+#endif
+    return @"https://www.shareprepare.com/notes/changes";
 }
 
 
