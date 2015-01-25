@@ -37,8 +37,8 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kNoteCellIdentifier];
-    Note *note = [self.fetchedResultsController objectAtIndexPath:indexPath];
-    cell.textLabel.text = note.note;
+    [self configureCell:cell atIndexPath:indexPath];
+    
     return cell;
 }
 
@@ -112,7 +112,7 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             break;
     }
     
-    if (!anObject.objectID.isTemporaryID) {
+    if (!anObject.objectID.isTemporaryID && (type == NSFetchedResultsChangeUpdate || type == NSFetchedResultsChangeInsert)) {
         [self updatedObjectOnWeb:anObject];
     }
 }
@@ -121,14 +121,24 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 {
     Note *note = (Note *)[self.fetchedResultsController objectAtIndexPath:indexPath];
     cell.textLabel.text = note.note;
+    cell.detailTextLabel.text = note.category;
+    [cell layoutSubviews];
 }
 
 - (void)updatedObjectOnWeb:(Note*)note
 {
     NSString *urlString = [NSString stringWithFormat:@"%@/n/", [self mainURL]];
     NSURL *url = [NSURL URLWithString:urlString];
+    
+    double milliseconds = [note.date timeIntervalSinceReferenceDate]*1000;
+    int myInt = (int)(milliseconds + (milliseconds>0 ? 0.5 : -0.5));
+    NSString* myNewString = [NSString stringWithFormat:@"%d", myInt];
 
-    NSDictionary *postDict = [NSDictionary dictionaryWithObjectsAndKeys:note.note, @"note_text", note.uuid, @"note_id", nil];
+    NSDictionary *postDict = @{@"note_id" : note.uuid,
+                               @"note_text" : note.note,
+                               @"note_date" : myNewString
+                               };
+    
     NSData *postData = [self encodeDictionary:postDict];
     
     // Create the request
@@ -155,20 +165,6 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             NSLog(@"Error %@", error);
             return;
         }
-        
-        NSString *responeString = [[NSString alloc] initWithData:receivedData
-                                                        encoding:NSUTF8StringEncoding];
-        // Assume lowercase
-        if ([responeString isEqualToString:@"true"]) {
-            // Deal with true
-            return;
-        }
-        // Deal with an error
-        
-        // When dealing with UI updates, they must be run on the main queue, ie:
-        //      dispatch_async(dispatch_get_main_queue(), ^(void){
-        //
-        //      });
     });
 }
 
@@ -230,15 +226,52 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
         NSManagedObjectContext *context = [self managedObjectContext];
         NSArray *results = [context executeFetchRequest:request error:&error];
         if (results != nil) {
-            for(Note *note in results){
+            if ([results count] != 0) {
+                for(Note *note in results){
+                    [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+                        NSString *currentNote = [obj objectAtIndex:0];
+                        if ([note.uuid isEqualToString:currentNote]) {
+                            note.note = [obj objectAtIndex:1];
+                            
+                            NSString *category = [obj objectAtIndex:2];
+                            if (![category isEqual:[NSNull null]]) {
+                                note.category = category;
+                            }
+                            
+                            NSString *date = [obj objectAtIndex:3];
+                            if (![date isEqual:[NSNull null]]) {
+                                // Convert NSString to NSTimeInterval
+                                NSTimeInterval seconds = [date doubleValue];
+                                
+                                NSDate *epochNSDate = [[NSDate alloc] initWithTimeIntervalSince1970:seconds];
+                                note.date = epochNSDate;
+                            }
+                        }
+                    }];
+                }
+            } else {
                 [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-                    NSString *currentNote = [obj objectAtIndex:0];
-                    if ([note.uuid isEqualToString:currentNote]) {
-                        note.note = [obj objectAtIndex:1];
+                    Note *note = [NSEntityDescription insertNewObjectForEntityForName:[Note entityName] inManagedObjectContext:context];
+                    note.uuid = [obj objectAtIndex:0];
+                    note.note = [obj objectAtIndex:1];
+                    
+                    NSString *category = [obj objectAtIndex:2];
+                    if (![category isEqual:[NSNull null]]) {
+                        note.category = category;
+                    }
+                    
+                    NSString *date = [obj objectAtIndex:3];
+                    if (![date isEqual:[NSNull null]]) {
+                        // Convert NSString to NSTimeInterval
+                        NSTimeInterval seconds = [date doubleValue];
+                        
+                        // (Step 1) Create NSDate object
+                        NSDate *epochNSDate = [[NSDate alloc] initWithTimeIntervalSince1970:seconds];
+                        note.date = epochNSDate;
                     }
                 }];
             }
-            
+
             NSError *error = nil;
             // Save the object to persistent store
             if (![context save:&error]) {
@@ -256,6 +289,7 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
     });
 
 }
+
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
@@ -327,10 +361,10 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 
 - (NSString *)mainURL
 {
-#if DEBUG
-    return @"http://localhost:8093";
-#endif
-    return @"https://www.shareprepare.com/notes/changes";
+//#if DEBUG
+//    return @"http://localhost:8093";
+//#endif
+    return @"http://www.shareprepare.com";
 }
 
 
