@@ -34,6 +34,11 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
     return [[[self.fetchedResultsController sections] objectAtIndex:section] numberOfObjects];
 }
 
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
+{
+    return [[self.fetchedResultsController sections] count];
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kNoteCellIdentifier];
@@ -229,16 +234,16 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             if ([results count] != 0) {
                 for(Note *note in results){
                     [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-                        NSString *currentNote = [obj objectAtIndex:0];
+                        NSString *currentNote = [obj valueForKey:@"note_id"];
                         if ([note.uuid isEqualToString:currentNote]) {
-                            note.note = [obj objectAtIndex:1];
+                            note.note = [obj valueForKey:@"note_text"];
                             
-                            NSString *category = [obj objectAtIndex:2];
+                            NSString *category = [obj valueForKey:@"note_category"];
                             if (![category isEqual:[NSNull null]]) {
                                 note.category = category;
                             }
                             
-                            NSString *date = [obj objectAtIndex:3];
+                            NSString *date = [obj valueForKey:@"note_date"];
                             if (![date isEqual:[NSNull null]]) {
                                 // Convert NSString to NSTimeInterval
                                 NSTimeInterval seconds = [date doubleValue];
@@ -252,15 +257,15 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
             } else {
                 [jsonArray enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
                     Note *note = [NSEntityDescription insertNewObjectForEntityForName:[Note entityName] inManagedObjectContext:context];
-                    note.uuid = [obj objectAtIndex:0];
-                    note.note = [obj objectAtIndex:1];
+                    note.uuid = [obj valueForKey:@"note_id"];
+                    note.note = [obj valueForKey:@"note_text"];
                     
-                    NSString *category = [obj objectAtIndex:2];
+                    NSString *category = [obj valueForKey:@"note_category"];
                     if (![category isEqual:[NSNull null]]) {
                         note.category = category;
                     }
                     
-                    NSString *date = [obj objectAtIndex:3];
+                    NSString *date = [obj valueForKey:@"note_date"];
                     if (![date isEqual:[NSNull null]]) {
                         // Convert NSString to NSTimeInterval
                         NSTimeInterval seconds = [date doubleValue];
@@ -268,6 +273,8 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
                         // (Step 1) Create NSDate object
                         NSDate *epochNSDate = [[NSDate alloc] initWithTimeIntervalSince1970:seconds];
                         note.date = epochNSDate;
+                    } else {
+                        note.date = [NSDate date];
                     }
                 }];
             }
@@ -361,9 +368,9 @@ static NSString *kNoteCellIdentifier = @"NoteCell";
 
 - (NSString *)mainURL
 {
-//#if DEBUG
-//    return @"http://localhost:8093";
-//#endif
+#if DEBUG
+    return @"http://localhost:8093";
+#endif
     return @"http://www.shareprepare.com";
 }
 
