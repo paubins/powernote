@@ -14,10 +14,14 @@
 @dynamic note;
 @dynamic date;
 @dynamic uuid;
+@dynamic category;
+@dynamic updatedDate;
+@dynamic answer;
 
 + (NSString *)entityName
 {
     return NSStringFromClass(self);
 }
+
 
 @end

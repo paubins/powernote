@@ -16,16 +16,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "PowerNote/PATableViewController.m"
-            timestampString = "443870082.981404"
+            filePath = "PowerNote/AppDelegate.m"
+            timestampString = "443940773.117364"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "226"
-            endingLineNumber = "226"
-            landmarkName = "-reloadNotes:"
+            startingLineNumber = "53"
+            endingLineNumber = "53"
+            landmarkName = "-saveContext"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>

@@ -9,8 +9,19 @@
 #import <UIKit/UIKit.h>
 #import "Note.h"
 
+@class PATextViewController;
+
+@protocol PATextViewControllerDelegate <NSObject>
+
+- (void)textViewController:(PATextViewController *)controller didEndEditing:(BOOL)endEditing withNote:(NSString *)noteText;
+
+@end
+
 @interface PATextViewController : UIViewController
 
 @property (nonatomic, strong) Note *note;
+@property (nonatomic, weak) id<PATextViewControllerDelegate> delegate;
+@property (strong, nonatomic) IBOutlet UITextView *noteTextView;
+
 
 @end

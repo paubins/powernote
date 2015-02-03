@@ -8,10 +8,14 @@
         <scene sceneID="cko-ll-YTl">
             <objects>
                 <tableViewController id="c6J-yh-1f2" customClass="PATableViewController" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="22" sectionFooterHeight="22" id="Snz-aF-KFp">
+                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="1" sectionFooterHeight="1" id="Snz-aF-KFp">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <view key="tableFooterView" contentMode="scaleToFill" id="vlW-cE-phr">
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        </view>
                         <prototypes>
                             <tableViewCell contentMode="scaleToFill" selectionStyle="default" accessoryType="disclosureIndicator" indentationWidth="10" reuseIdentifier="NoteCell" textLabel="Qrv-jx-Dze" detailTextLabel="CdZ-Ul-fas" style="IBUITableViewCellStyleValue1" id="JDE-lG-Mb6">
                                 <autoresizingMask key="autoresizingMask"/>
@@ -82,9 +86,15 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <fontDescription key="fontDescription" type="system" pointSize="18"/>
-                        <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                        <textInputTraits key="textInputTraits" autocapitalizationType="sentences" enablesReturnKeyAutomatically="YES"/>
                         <dataDetectorType key="dataDetectorTypes" phoneNumber="YES" link="YES" address="YES" calendarEvent="YES"/>
+                        <connections>
+                            <outlet property="delegate" destination="zqg-NS-nfE" id="CTH-Vx-7q9"/>
+                        </connections>
                     </textView>
+                    <connections>
+                        <outlet property="noteTextView" destination="fyS-JE-BX4" id="fdP-M0-LSl"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="oxq-q1-0Xl" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
@@ -108,6 +118,6 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="Ddj-Gk-ocf"/>
+        <segue reference="hPG-bf-HOh"/>
     </inferredMetricsTieBreakers>
 </document>

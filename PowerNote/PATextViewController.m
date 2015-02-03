@@ -13,61 +13,68 @@
 
 @end
 
-@implementation PATextViewController
+@implementation PATextViewController {
+    BOOL _keyboardShown;
+}
+
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    _keyboardShown = NO;
+    
+    if (self.note.answer != nil && ![self.note.answer isEqualToString:@""]) {
+        UIBarButtonItem *leftBarButton = [[UIBarButtonItem alloc] initWithTitle:@"Open Answer" style:UIBarButtonItemStylePlain target:self action:@selector(openAnswer)];
+        self.navigationItem.rightBarButtonItem = leftBarButton;
+    }
+    
+    if (self.note.category != nil) {
+        self.navigationItem.title = self.note.category;
+    }
+    
     UITextView *textView = (UITextView *)self.view;
     textView.text = self.note.note;
     
-    [textView becomeFirstResponder];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWasShown:)
+                                                 name:UIKeyboardDidShowNotification object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWillBeHidden:)
+                                                 name:UIKeyboardWillHideNotification object:nil];
+    
+}
+
+- (void)openAnswer {
+    NSLog(@"opening answer");
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:self.note.answer]];
 }
 
 - (void)viewDidDisappear:(BOOL)animated
 {
-    UITextView *textView = (UITextView *)self.view;
-    NSString *newNote = textView.text;
-    if ([newNote isEqualToString:self.note.note]) return;
-    
-    NSManagedObjectContext *context = [self managedObjectContext];
-    
-    // Create a new managed object
-    [self.note setValue:newNote forKey:@"note"];
-    [self.note setValue:[NSDate date] forKey:@"date"];
-    
-    NSError *error = nil;
-    // Save the object to persistent store
-    if (![context save:&error]) {
-        NSLog(@"Can't Save! %@ %@", error, [error localizedDescription]);
+    id<PATextViewControllerDelegate> delegate = self.delegate;
+    if ([delegate conformsToProtocol:@protocol(PATextViewControllerDelegate)]) {
+        [delegate textViewController:self didEndEditing:YES withNote:self.noteTextView.text];
     }
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
+- (void)keyboardWasShown:(NSNotification*)notification {
+    if (_keyboardShown) return;
     
+    NSDictionary* info = [notification userInfo];
+    CGSize keyboardSize = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size;
+    self.view.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height - keyboardSize.height);
+    
+    _keyboardShown = YES;
 }
 
-- (NSManagedObjectContext *)managedObjectContext
-{
-    NSManagedObjectContext *context = nil;
-    id delegate = [[UIApplication sharedApplication] delegate];
-    if ([delegate performSelector:@selector(managedObjectContext)]) {
-        context = [delegate managedObjectContext];
-    }
-    return context;
+- (void)keyboardWillBeHidden:(NSNotification*)notification {
+    _keyboardShown = NO;
+    self.noteTextView.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
 }
 
-
-
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
+- (void)textViewDidChange:(UITextView *)textView {
+    [textView scrollRangeToVisible:[textView selectedRange]];
 }
-*/
 
 @end

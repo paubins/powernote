@@ -10,9 +10,11 @@
 #import <CoreData/CoreData.h>
 #import "PATextViewController.h"
 #import "Note.h"
+#import <CoreLocation/CoreLocation.h>
 
-@interface PATableViewController : UITableViewController <UITableViewDelegate, UITableViewDataSource, NSFetchedResultsControllerDelegate>
+@interface PATableViewController : UITableViewController <UITableViewDelegate, UITableViewDataSource, NSFetchedResultsControllerDelegate, PATextViewControllerDelegate, CLLocationManagerDelegate>
 
 @property (strong, nonatomic) NSFetchedResultsController *fetchedResultsController;
+
 
 @end
